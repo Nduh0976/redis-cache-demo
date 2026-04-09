@@ -1,4 +1,3 @@
-using RedisCacheDemo.Middleware;
 using RedisCacheDemo.Repositories;
 using RedisCacheDemo.Services;
 using StackExchange.Redis;
@@ -17,6 +16,7 @@ builder.Services.AddStackExchangeRedisCache(options =>
 });
 
 // App Services
+builder.Services.AddSingleton<CacheMetricsService>();
 builder.Services.AddSingleton<IProductRepository, InMemoryProductRepository>();
 builder.Services.AddScoped<ICacheService, RedisCacheService>();
 builder.Services.AddScoped<ProductService>();
@@ -29,7 +29,6 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-app.UseMiddleware<CacheMetricsMiddleware>();
 app.UseSwagger();
 app.UseSwaggerUI();
 app.MapControllers();

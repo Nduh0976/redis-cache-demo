@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using RedisCacheDemo.Middleware;
 using RedisCacheDemo.Services;
 
 namespace RedisCacheDemo.Controllers;
@@ -18,14 +17,12 @@ public class ProductsController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id, CancellationToken cancellationToken)
     {
-        var (product, cacheHit) = await _productService.GetByIdAsync(id, cancellationToken);
+        var product = await _productService.GetByIdAsync(id, cancellationToken);
         if (product == null)
         {
             return NotFound();
         }
 
-        // Set cache status header for metrics middleware
-        Response.Headers["X-Cache-Status"] = cacheHit ? "HIT" : "MISS";
         return Ok(product);
     }
 
@@ -55,10 +52,17 @@ public class ProductsController : ControllerBase
 [Route("cache")]
 public class CacheStatsController : ControllerBase
 {
+    private readonly CacheMetricsService _cacheMetricsService;
+
+    public CacheStatsController(CacheMetricsService cacheMetricsService)
+    {
+        _cacheMetricsService = cacheMetricsService;
+    }
+
     [HttpGet("stats")]
     public IActionResult Stats()
     {
-        var (hits, misses, ratio) = CacheMetricsMiddleware.GetStats();
+        var (hits, misses, ratio) = _cacheMetricsService.GetStats();
         return Ok(new { hits, misses, hitRatioPercent = $"{ratio}%" });
     }
 }

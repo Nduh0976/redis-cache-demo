@@ -23,30 +23,13 @@ public class ProductService
         _logger = logger;
     }
 
-    public async Task<(Product? Product, bool CacheHit)> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    public Task<Product?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        var cacheKey = ProductKey(id);
-
-        // Try to get from cache first
-        var cachedProduct = await _cacheService.GetAsync<Product>(cacheKey, cancellationToken);
-        if (cachedProduct != null)
+        return _cacheService.GetOrCreateAsync(ProductKey(id), async c =>
         {
-            _logger.LogInformation("CACHE HIT - key: {Key}", cacheKey);
-            return (cachedProduct, true);
-        }
-
-        // If not in cache(Cache miss), get from repository
-        _logger.LogInformation("CACHE MISS - key: {Key}", cacheKey);
-        var product = await _productRepository.GetByIdAsync(id, cancellationToken);
-
-
-        if (product != null)
-        {
-            // Store in cache for future requests
-            await _cacheService.SetAsync(cacheKey, product, TimeSpan.FromMinutes(10), cancellationToken);
-        }
-
-        return (product, false);
+            _logger.LogInformation("CACHE MISS - key: {Key}", ProductKey(id));
+            return await _productRepository.GetByIdAsync(id, c);
+        }, TimeSpan.FromMinutes(10), cancellationToken);
     }
 
     public async Task<IReadOnlyList<Product>> GetAllAsync(CancellationToken cancellationToken = default)
