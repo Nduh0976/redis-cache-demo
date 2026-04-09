@@ -7,7 +7,7 @@ public class ProductService
 {
     private readonly IProductRepository _productRepository;
     private readonly ICacheService _cacheService;
-    private readonly ILogger _logger;
+    private readonly ILogger<ProductService> _logger;
 
     private static string ProductKey(int id)
     {
@@ -16,14 +16,14 @@ public class ProductService
 
     private const string AllProductsKey = "products:all";
 
-    public ProductService(IProductRepository productRepository, ICacheService cacheService, ILogger logger)
+    public ProductService(IProductRepository productRepository, ICacheService cacheService, ILogger<ProductService> logger)
     {
         _productRepository = productRepository;
         _cacheService = cacheService;
         _logger = logger;
     }
 
-    public async Task<Product?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<(Product? Product, bool CacheHit)> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         var cacheKey = ProductKey(id);
 
@@ -32,7 +32,7 @@ public class ProductService
         if (cachedProduct != null)
         {
             _logger.LogInformation("CACHE HIT - key: {Key}", cacheKey);
-            return cachedProduct;
+            return (cachedProduct, true);
         }
 
         // If not in cache(Cache miss), get from repository
@@ -46,7 +46,7 @@ public class ProductService
             await _cacheService.SetAsync(cacheKey, product, TimeSpan.FromMinutes(10), cancellationToken);
         }
 
-        return product;
+        return (product, false);
     }
 
     public async Task<IReadOnlyList<Product>> GetAllAsync(CancellationToken cancellationToken = default)

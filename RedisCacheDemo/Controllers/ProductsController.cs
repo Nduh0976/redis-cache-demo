@@ -18,14 +18,14 @@ public class ProductsController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id, CancellationToken cancellationToken)
     {
-        var product = await _productService.GetByIdAsync(id, cancellationToken);
+        var (product, cacheHit) = await _productService.GetByIdAsync(id, cancellationToken);
         if (product == null)
         {
             return NotFound();
         }
 
         // Set cache status header for metrics middleware
-        Response.Headers["X-Cache-Status"] = "HIT";
+        Response.Headers["X-Cache-Status"] = cacheHit ? "HIT" : "MISS";
         return Ok(product);
     }
 
